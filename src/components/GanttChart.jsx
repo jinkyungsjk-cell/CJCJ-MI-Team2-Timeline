@@ -1,135 +1,182 @@
-import { useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { MODULE_COLORS } from '../data/constants'
 import { overallProgress } from '../utils/helpers'
 import s from './GanttChart.module.css'
 
-// view: 'Quarter Day'|'Half Day'|'Day'|'Week'|'Month'
 export function GanttChart({ projects, viewMode = 'Month', onTaskClick }) {
-  const containerRef = useRef(null)
-  const ganttRef = useRef(null)
+  if (!projects?.length) return <div className={s.empty}>표시할 프로젝트가 없습니다.</div>
 
-  // Build frappe-gantt tasks from projects + modules
-  function buildTasks(projects) {
-    const tasks = []
+  // ── Date helpers ──────────────────────────────────────────
+  const toMs = (str) => {
+    if (!str) return Date.now()
+    const d = new Date(str + 'T00:00:00')
+    return isNaN(d) ? Date.now() : d.getTime()
+  }
+  const toDate = (str) => new Date(toMs(str))
 
-    // frappe-gantt requires dates as Date objects or 'YYYY-MM-DD' strings
-    // Convert ISO string safely
-    const toDate = (str) => {
-      if (!str) return new Date()
-      const d = new Date(str + 'T00:00:00')
-      return isNaN(d) ? new Date() : d
-    }
+  // ── Compute range ─────────────────────────────────────────
+  let rangeStart, rangeEnd
+  const allStarts = projects.map(p => toMs(p.start))
+  const allEnds   = projects.map(p => toMs(p.end))
+  projects.forEach(p => p.modules?.forEach(m => {
+    allStarts.push(toMs(m.start)); allEnds.push(toMs(m.end))
+  }))
 
-    projects.forEach(proj => {
-      const prog = overallProgress(proj.modules)
-      tasks.push({
-        id: proj.id,
-        name: proj.name,
-        start: toDate(proj.start),
-        end: toDate(proj.end),
-        progress: prog,
-        custom_class: 'bar-proj',
-        color: proj.color,
-        _proj: proj,
-        _isProj: true,
-      })
-      proj.modules.forEach(mod => {
-        tasks.push({
-          id: `${proj.id}__${mod.id}`,
-          name: mod.name,
-          start: toDate(mod.start),
-          end: toDate(mod.end),
-          progress: mod.progress ?? 0,
-          dependencies: proj.id,
-          custom_class: 'bar-mod',
-          color: MODULE_COLORS[mod.name] || proj.color,
-          _proj: proj,
-          _mod: mod,
-          _isProj: false,
-        })
-      })
-    })
-    return tasks
+  const today = new Date(); today.setHours(0,0,0,0)
+
+  if (viewMode === 'Month') {
+    rangeStart = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+    rangeEnd   = new Date(today.getFullYear(), today.getMonth() + 4, 0)
+  } else if (viewMode === 'Week') {
+    rangeStart = new Date(today); rangeStart.setDate(today.getDate() - 14)
+    rangeEnd   = new Date(today); rangeEnd.setDate(today.getDate() + 42)
+  } else {
+    rangeStart = new Date(today); rangeStart.setDate(today.getDate() - 3)
+    rangeEnd   = new Date(today); rangeEnd.setDate(today.getDate() + 14)
   }
 
-  useEffect(() => {
-    if (!containerRef.current || !projects?.length) return
+  // Expand range to fit all projects
+  rangeStart = new Date(Math.min(rangeStart.getTime(), ...allStarts))
+  rangeEnd   = new Date(Math.max(rangeEnd.getTime(),   ...allEnds))
+  // Add padding
+  rangeStart.setDate(rangeStart.getDate() - 3)
+  rangeEnd.setDate(rangeEnd.getDate() + 3)
 
-    const tasks = buildTasks(projects)
-    if (!tasks.length) return
+  const totalMs   = rangeEnd.getTime() - rangeStart.getTime()
+  const todayPct  = ((today.getTime() - rangeStart.getTime()) / totalMs) * 100
 
-    let attempts = 0
-    const init = () => {
-      const GanttLib = window.Gantt
-      if (!GanttLib) {
-        if (attempts++ < 30) { setTimeout(init, 150); return }
-        console.error('Gantt CDN not loaded'); return
+  const pct = (ms) => ((ms - rangeStart.getTime()) / totalMs) * 100
+  const barLeft  = (start) => Math.max(0, pct(toMs(start)))
+  const barWidth = (start, end) => Math.max(0.3, pct(toMs(end) + 86400000) - pct(toMs(start)))
+
+  // ── Header columns ────────────────────────────────────────
+  function buildCols() {
+    const cols = []
+    if (viewMode === 'Day') {
+      let d = new Date(rangeStart)
+      while (d <= rangeEnd) {
+        cols.push({ label: `${d.getMonth()+1}/${d.getDate()}`, pct: pct(d.getTime()), date: new Date(d) })
+        d.setDate(d.getDate() + 1)
       }
-      if (containerRef.current) containerRef.current.innerHTML = ''
-      if (!containerRef.current) return
-      try {
-      ganttRef.current = new GanttLib(containerRef.current, tasks, {
-        view_mode: viewMode,
-        date_format: 'YYYY-MM-DD',
-        language: 'ko',
-        popup_trigger: 'click',
-        on_click: (task) => {
-          if (task._isProj) onTaskClick?.(task._proj.id)
-          else onTaskClick?.(task._proj.id)
-        },
-        on_date_change: () => {},
-        on_progress_change: () => {},
-        on_view_change: () => {},
-        custom_popup_html: (task) => {
-          const p = task._proj
-          const m = task._mod
-          if (task._isProj) {
-            return `
-              <div style="padding:10px 14px;min-width:180px;font-family:Pretendard,sans-serif;">
-                <div style="font-weight:600;font-size:13px;margin-bottom:4px;">${p.name}</div>
-                <div style="font-size:11px;color:#6b6a66;">${p.type} · ${task.progress}% 완료</div>
-                <div style="font-size:11px;color:#6b6a66;margin-top:2px;">${p.start} ~ ${p.end}</div>
-                <div style="font-size:11px;color:#1a65b8;margin-top:6px;cursor:pointer;">클릭하여 상세 보기 →</div>
-              </div>`
-          }
-          return `
-            <div style="padding:10px 14px;min-width:180px;font-family:Pretendard,sans-serif;">
-              <div style="font-weight:600;font-size:12px;margin-bottom:2px;">${m.name}</div>
-              <div style="font-size:11px;color:#6b6a66;">${p.name}</div>
-              <div style="font-size:11px;color:#6b6a66;margin-top:2px;">${m.start} ~ ${m.end}</div>
-              <div style="font-size:11px;margin-top:4px;">진행률: <b>${task.progress}%</b></div>
-            </div>`
-        },
-      })
-
-      // Apply custom colors per bar after render
-      setTimeout(() => {
-        tasks.forEach(task => {
-          const bars = containerRef.current?.querySelectorAll(`.bar-wrapper[data-id="${task.id}"]`)
-          bars?.forEach(wrapper => {
-            const bar = wrapper.querySelector('.bar')
-            const progress = wrapper.querySelector('.bar-progress')
-            if (bar) bar.style.fill = task.color + '33'
-            if (bar) bar.style.stroke = task.color
-            if (progress) progress.style.fill = task.color
-          })
-        })
-      }, 100)
-
-      } catch (e) {
-        console.error('Gantt init error:', e)
+    } else if (viewMode === 'Week') {
+      let d = new Date(rangeStart)
+      d.setDate(d.getDate() - d.getDay() + 1) // Monday
+      while (d <= rangeEnd) {
+        cols.push({ label: `${d.getMonth()+1}/${d.getDate()}`, pct: pct(d.getTime()), date: new Date(d) })
+        d.setDate(d.getDate() + 7)
+      }
+    } else {
+      let d = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1)
+      while (d <= rangeEnd) {
+        cols.push({ label: `${d.getFullYear()}년 ${d.getMonth()+1}월`, pct: pct(d.getTime()), date: new Date(d) })
+        d.setMonth(d.getMonth() + 1)
       }
     }
-    init()
-  }, [projects, viewMode])
-
-  if (!projects?.length) {
-    return <div className={s.empty}>표시할 프로젝트가 없습니다.</div>
+    return cols
   }
+
+  const cols = buildCols()
+  const LABEL_W = 200
 
   return (
     <div className={s.wrapper}>
-      <div ref={containerRef} className={s.gantt} />
+      <div className={s.scroll}>
+        <div className={s.inner} style={{ minWidth: Math.max(800, cols.length * (viewMode==='Month' ? 120 : 60)) }}>
+
+          {/* ── Header ── */}
+          <div className={s.headerRow}>
+            <div className={s.labelCol} style={{ width: LABEL_W }}>프로젝트 / 모듈</div>
+            <div className={s.timelineCol}>
+              {cols.map((col, i) => (
+                <div key={i} className={s.colTick} style={{ left: `${col.pct}%` }}>
+                  <span className={s.colLabel}>{col.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Rows ── */}
+          {projects.map(proj => {
+            const prog = overallProgress(proj.modules)
+            const bl = barLeft(proj.start)
+            const bw = barWidth(proj.start, proj.end)
+            return (
+              <ProjectRows
+                key={proj.id}
+                proj={proj} prog={prog}
+                bl={bl} bw={bw}
+                todayPct={todayPct}
+                barLeft={barLeft} barWidth={barWidth}
+                onTaskClick={onTaskClick}
+                LABEL_W={LABEL_W}
+              />
+            )
+          })}
+
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ProjectRows({ proj, prog, bl, bw, todayPct, barLeft, barWidth, onTaskClick, LABEL_W }) {
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <div>
+      {/* Project row */}
+      <div className={`${s.row} ${s.projRow}`}>
+        <div className={s.labelCol} style={{ width: LABEL_W }}>
+          <button className={s.expandBtn} onClick={() => setExpanded(e => !e)}>
+            {expanded ? '▼' : '▶'}
+          </button>
+          <div className={s.projDot} style={{ background: proj.color }} />
+          <div className={s.rowLabel}>
+            <div className={s.rowName}>{proj.name}</div>
+          </div>
+        </div>
+        <div className={s.timelineCol} style={{ cursor: 'pointer' }} onClick={() => onTaskClick?.(proj.id)}>
+          {todayPct >= 0 && todayPct <= 100 &&
+            <div className={s.todayLine} style={{ left: `${todayPct}%` }} />}
+          {bw > 0 && (
+            <div className={s.bar} style={{
+              left: `${bl}%`, width: `${bw}%`,
+              background: proj.color,
+            }}>
+              <div className={s.barFill} style={{ width: `${prog}%`, background: proj.color, filter: 'brightness(1.3)' }} />
+              <span className={s.barLabel}>{proj.name} {prog}%</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Module rows */}
+      {expanded && proj.modules?.map(mod => {
+        const mc = MODULE_COLORS[mod.name] || proj.color
+        const ml = barLeft(mod.start)
+        const mw = barWidth(mod.start, mod.end)
+        return (
+          <div key={mod.id} className={`${s.row} ${s.modRow}`}>
+            <div className={s.labelCol} style={{ width: LABEL_W, paddingLeft: 32 }}>
+              <div className={s.modDot} style={{ background: mc }} />
+              <span className={s.modName}>{mod.name}</span>
+            </div>
+            <div className={s.timelineCol}>
+              {todayPct >= 0 && todayPct <= 100 &&
+                <div className={s.todayLine} style={{ left: `${todayPct}%` }} />}
+              {mw > 0 && (
+                <div className={s.bar} style={{
+                  left: `${ml}%`, width: `${mw}%`,
+                  height: 12, top: '50%', transform: 'translateY(-50%)',
+                  background: mc + '44', border: `1.5px solid ${mc}`,
+                }}>
+                  <div className={s.barFill} style={{ width: `${mod.progress}%`, background: mc, height: '100%' }} />
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
