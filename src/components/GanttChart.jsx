@@ -11,27 +11,34 @@ export function GanttChart({ projects, viewMode = 'Month', onTaskClick }) {
   // Build frappe-gantt tasks from projects + modules
   function buildTasks(projects) {
     const tasks = []
+
+    // frappe-gantt requires dates as Date objects or 'YYYY-MM-DD' strings
+    // Convert ISO string safely
+    const toDate = (str) => {
+      if (!str) return new Date()
+      const d = new Date(str + 'T00:00:00')
+      return isNaN(d) ? new Date() : d
+    }
+
     projects.forEach(proj => {
       const prog = overallProgress(proj.modules)
-      // Project-level bar
       tasks.push({
         id: proj.id,
         name: proj.name,
-        start: proj.start,
-        end: proj.end,
+        start: toDate(proj.start),
+        end: toDate(proj.end),
         progress: prog,
-        custom_class: `bar-proj`,
+        custom_class: 'bar-proj',
         color: proj.color,
         _proj: proj,
         _isProj: true,
       })
-      // Module-level bars
       proj.modules.forEach(mod => {
         tasks.push({
           id: `${proj.id}__${mod.id}`,
           name: mod.name,
-          start: mod.start,
-          end: mod.end,
+          start: toDate(mod.start),
+          end: toDate(mod.end),
           progress: mod.progress ?? 0,
           dependencies: proj.id,
           custom_class: 'bar-mod',
@@ -48,15 +55,19 @@ export function GanttChart({ projects, viewMode = 'Month', onTaskClick }) {
   useEffect(() => {
     if (!containerRef.current || !projects?.length) return
 
-    // Clear previous
-    containerRef.current.innerHTML = ''
-
     const tasks = buildTasks(projects)
     if (!tasks.length) return
 
-    try {
+    let attempts = 0
+    const init = () => {
       const GanttLib = window.Gantt
-      if (!GanttLib) { console.error('Gantt library not loaded'); return }
+      if (!GanttLib) {
+        if (attempts++ < 30) { setTimeout(init, 150); return }
+        console.error('Gantt CDN not loaded'); return
+      }
+      if (containerRef.current) containerRef.current.innerHTML = ''
+      if (!containerRef.current) return
+      try {
       ganttRef.current = new GanttLib(containerRef.current, tasks, {
         view_mode: viewMode,
         date_format: 'YYYY-MM-DD',
@@ -105,9 +116,11 @@ export function GanttChart({ projects, viewMode = 'Month', onTaskClick }) {
         })
       }, 100)
 
-    } catch (e) {
-      console.error('Gantt init error:', e)
+      } catch (e) {
+        console.error('Gantt init error:', e)
+      }
     }
+    init()
   }, [projects, viewMode])
 
   if (!projects?.length) {
