@@ -1,0 +1,59 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #ffffff;
+  --bg2: #f8f7f4;
+  --bg3: #f1f0ec;
+  --text: #1a1917;
+  --text2: #6b6a66;
+  --text3: #a8a7a3;
+  --border: rgba(0,0,0,0.08);
+  --border2: rgba(0,0,0,0.14);
+  --blue: #1a65b8;
+  --blue-bg: #e8f0fb;
+  --blue-text: #0d4a8a;
+  --green: #1a8a5f;
+  --green-bg: #e0f3ec;
+  --red: #d94040;
+  --red-bg: #fbeaea;
+  --amber: #b06e10;
+  --amber-bg: #faecd6;
+  --purple: #5548b0;
+  --purple-bg: #eceafb;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --sidebar-w: 224px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+}
+
+body {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+  background: var(--bg3);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; }
+a { color: inherit; text-decoration: none; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
+
+/* Frappe Gantt overrides */
+.gantt-container { overflow: visible !important; }
+.gantt .bar { filter: none !important; }
+.gantt .bar-label { font-family: 'Pretendard', sans-serif !important; font-size: 11px !important; font-weight: 500 !important; }
+.gantt .tick { stroke: var(--border) !important; }
+.gantt .today-highlight { fill: rgba(26,101,184,0.06) !important; }
+.gantt .lower-text, .gantt .upper-text { font-family: 'Pretendard', sans-serif !important; font-size: 11px !important; fill: var(--text2) !important; }
+.gantt-container svg { border-radius: var(--radius-lg); }
+.gantt .bar-progress { opacity: 0.9; }
+.gantt .bar-wrapper:hover .bar { filter: brightness(1.06) !important; }
+.gantt .grid-header { fill: var(--bg2) !important; }
+.gantt .grid-row:nth-child(even) { fill: rgba(0,0,0,0.012) !important; }
+.gantt .row-line { stroke: var(--border) !important; }

@@ -1,0 +1,15 @@
+.wrapper {
+  overflow-x: auto;
+  overflow-y: visible;
+  background: var(--bg);
+  border-radius: var(--radius-lg);
+  border: 0.5px solid var(--border);
+  padding: 8px 0;
+}
+.gantt { min-width: 700px; }
+.empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--text2);
+  font-size: 13px;
+}

@@ -1,0 +1,54 @@
+.page { padding: 28px 32px; }
+.topbar { display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px; }
+.title { font-size:18px;font-weight:600; }
+.controls { display:flex;align-items:center;gap:10px;flex-wrap:wrap; }
+.viewSwitch { display:flex;border:0.5px solid var(--border2);border-radius:var(--radius);overflow:hidden; }
+.viewBtn { padding:5px 14px;font-size:12px;font-weight:500;background:var(--bg);border:none;color:var(--text2);border-right:0.5px solid var(--border);cursor:pointer;transition:all .12s; }
+.viewBtn:last-child { border-right:none; }
+.viewBtnActive { background:var(--text);color:var(--bg); }
+.navRow { display:flex;align-items:center;gap:6px; }
+.navBtn { display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--radius);cursor:pointer;color:var(--text2); }
+.navBtn:hover { background:var(--bg2);color:var(--text); }
+.navTitle { font-size:14px;font-weight:500;min-width:140px;text-align:center; }
+.todayBtn { padding:5px 12px;font-size:12px;font-weight:500;background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--radius);cursor:pointer;color:var(--text2); }
+.todayBtn:hover { background:var(--bg2); }
+
+.calBody { background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden; }
+
+/* Month */
+.monthGrid { display:grid;grid-template-columns:repeat(7,1fr); }
+.dayHeader { background:var(--bg2);text-align:center;padding:8px;font-size:11px;font-weight:600;color:var(--text2);border-bottom:0.5px solid var(--border); }
+.cell { min-height:90px;padding:6px;border-right:0.5px solid var(--border);border-bottom:0.5px solid var(--border);vertical-align:top; }
+.cell:nth-child(7n) { border-right:none; }
+.cellOther .cellDate { color:var(--text3); }
+.cellToday { background:var(--blue-bg); }
+.cellDate { font-size:12px;font-weight:500;margin-bottom:3px; }
+.cellToday .cellDate { color:var(--blue-text);font-weight:700; }
+.event { font-size:10px;padding:2px 5px;border-radius:3px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff;cursor:pointer;transition:opacity .1s; }
+.event:hover { opacity:.85; }
+.eventMore { font-size:10px;color:var(--text2); }
+
+/* Week */
+.weekGrid { width:100%; }
+.weekHeaderRow { display:grid;grid-template-columns:60px repeat(7,1fr);border-bottom:0.5px solid var(--border); }
+.timeCol { background:var(--bg2);border-right:0.5px solid var(--border);padding:8px; }
+.weekDayHeader { background:var(--bg2);text-align:center;padding:8px 4px;border-right:0.5px solid var(--border); }
+.weekDayHeader:last-child { border-right:none; }
+.weekDayHeaderToday { background:var(--blue-bg); }
+.weekDayName { font-size:11px;color:var(--text2); }
+.weekDayNum { font-size:18px;font-weight:500; }
+.weekDayNumToday { color:var(--blue-text);font-weight:700; }
+.weekAllDay { display:grid;grid-template-columns:60px repeat(7,1fr);min-height:80px; }
+.weekCell { border-right:0.5px solid var(--border);padding:4px;min-height:80px; }
+.weekCell:last-child { border-right:none; }
+.weekCellToday { background:rgba(26,101,184,.04); }
+
+/* Day */
+.dayView { padding:20px; }
+.dayViewHeader { font-size:16px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:10px; }
+.todayPill { font-size:11px;font-weight:500;padding:2px 10px;border-radius:10px;background:var(--blue-bg);color:var(--blue-text); }
+.dayEmpty { padding:32px;text-align:center;color:var(--text2);font-size:13px; }
+.dayEvent { display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:0.5px solid var(--border);cursor:pointer;transition:background .1s; }
+.dayEvent:hover { background:var(--bg2); }
+.dayEvent:last-child { border-bottom:none; }
+.dayEventDot { width:10px;height:10px;border-radius:2px;flex-shrink:0; }
